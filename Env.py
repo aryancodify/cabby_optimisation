@@ -103,7 +103,8 @@ class CabDriver():
             
             state[0] = action[0] #the driver is not at the pickup point
             time = Time_matrix[state[0]][action[1]][int(state[1])][state[2]] #Time taken to drop the passenger          
-        next_state = [action[1], int(state[1]+time), state[2]]
+        next_state = self.update_time_day(state, time)          
+        next_state = [action[1], next_state[1], next_state[2]]
         return next_state
 
     def reset(self):
