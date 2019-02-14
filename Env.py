@@ -24,35 +24,35 @@ class CabDriver():
         # Start the first round
         self.reset()
 
-    def state_get_loc(self, state)
+    def state_get_loc(self, state):
         return state[0]
 
-    def state_get_time(self, state)
+    def state_get_time(self, state):
         return state[1]
 
-    def state_get_day(self, state)
+    def state_get_day(self, state):
         return state[2]
 
-    def action_get_pickup(self, action)
+    def action_get_pickup(self, action):
         return action[0]
 
-    def action_get_drop(self, action)
+    def action_get_drop(self, action):
         return state[1]
 
-    def state_set_loc(self, state, loc)
+    def state_set_loc(self, state, loc):
         state[0] = loc
 
-    def state_set_time(self, state, time)
+    def state_set_time(self, state, time):
         state[1] = time
 
-    def state_set_day(self, state, day)
+    def state_set_day(self, state, day):
         state[2] = day
 
-    def action_set_pickup(self, action)
-        return action[0]
+    def action_set_pickup(self, action, pickup):
+        action[0] = pickup
 
-    def action_set_drop(self, action)
-        return state[1]
+    def action_set_drop(self, action, drop):
+        action[1] = drop
 
     ## Encoding state (or state-action) for NN input
 
