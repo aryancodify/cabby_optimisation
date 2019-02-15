@@ -37,7 +37,7 @@ class CabDriver():
         return action[0]
 
     def action_get_drop(self, action):
-        return state[1]
+        return action[1]
 
     def state_set_loc(self, state, loc):
         state[0] = loc
