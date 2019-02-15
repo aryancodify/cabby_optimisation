@@ -17,8 +17,8 @@ class CabDriver():
 
     def __init__(self):
         """initialise your state and define your action space and state space"""
-        self.action_space =  [(0,0)] + list(permutations([i for i in range(1,m+1)], 2))
-        self.state_space = [[x,y,z] for x in range(1,m+1) for y in range(t) for z in range(d)]
+        self.action_space =  [(0,0)] + list(permutations([i for i in range(m)], 2))
+        self.state_space = [[x,y,z] for x in range(m) for y in range(t) for z in range(d)]
         self.state_init = [1]
 
         # Start the first round
@@ -58,11 +58,18 @@ class CabDriver():
 
     def state_encod_arch1(self, state):
         """convert the state into a vector so that it can be fed to the NN. This method converts a given state into a vector format. Hint: The vector is of size m + t + d."""
+        '''
         state_encod = [0 for _ in range(m+t+d)]
-        state_encod[state[0]-1] = 1
+        state_encod[state[0]] = 1
         state_encod[m+state[1]] = 1
         state_encod[m+t+state[2]] = 1
-            
+        '''
+        
+        state_encod = [0 for _ in range(m+t+d)]
+        state_encod[self.state_get_loc(state)] = 1
+        state_encod[m+self.state_get_time(state)] = 1
+        state_encod[m+t+self.state_get_day(state)] = 1
+        
         return state_encod
 
 
@@ -70,14 +77,25 @@ class CabDriver():
     def state_encod_arch2(self, state, action):
     #     """convert the (state-action) into a vector so that it can be fed to the NN. This method converts a given state-action pair into a vector format. Hint: The vector is of size m + t + d + m + m."""
         state_encod = [0 for _ in range(m+t+d+m+m)]
-        
-        state_encod[state[0]-1] = 1
+        '''
+        state_encod[state[0]] = 1
         state_encod[m+state[1]] = 1
         state_encod[m+t+state[2]] = 1
         if (action[0] != 0 ) : 
-            state_encod[m+t+d+action[0]-1] = 1
+            state_encod[m+t+d+action[0]] = 1
         if (action[1] != 0 ) : 
-            state_encod[m+t+d+m+action[1]-1] = 1
+            state_encod[m+t+d+m+action[1]] = 1
+        '''
+        
+        state_encod[self.state_get_loc(state)] = 1
+        state_encod[m+self.state_get_time(state)] = 1
+        state_encod[m+t+self.state_get_day(state)] = 1
+        if (action[0] != 0 ) : 
+            state_encod[m+t+d+self.action_get_pickup(action)] = 1
+        if (action[1] != 0 ) : 
+            state_encod[m+t+d+m+self.action_get_drop(action)] = 1
+        
+        
         
         return state_encod
 
@@ -87,15 +105,15 @@ class CabDriver():
         """Determining the number of requests basis the location. 
         Use the table specified in the MDP and complete for rest of the locations"""
         location = state[0]
-        if location == 1:
+        if location == 0:
             requests = np.random.poisson(2)
-        if location == 2:
+        if location == 1:
             requests = np.random.poisson(12)
-        if location == 3:
+        if location == 2:
             requests = np.random.poisson(4)
-        if location == 4:
+        if location == 3:
             requests = np.random.poisson(7)
-        if location == 5:
+        if location == 4:
             requests = np.random.poisson(8)
             
         if requests >15:
@@ -109,7 +127,7 @@ class CabDriver():
         return possible_actions_index,actions  
     
     def update_time_day(self, state, time):
-        if (state[1] + time) < 24: 
+        if (self.state_get_time(state) + time) < 24: 
             state[1] = state[1] + time
             return state
         else: #if time is > 24 we increment the day by 1.
@@ -123,17 +141,19 @@ class CabDriver():
     def next_state_func(self, state, action, Time_matrix):
         
         """Takes state and action as input and returns next state"""
-        if state[0] == action[0] : #means driver is already at pickup point
-            time = Time_matrix[state[0]][action[1]][state[1]][state[2]]
+        if self.state_get_loc(state) == self.action_get_pickup(action) : #means driver is already at pickup point
+            time = Time_matrix[self.state_get_loc(state)][self.action_get_drop(action)][self.state_get_time(state)][self.state_get_day(state)]
        
         else: #Driver is not at the pickup point, he needs to travel to pickup point first and then drop the passenger.
-            time = Time_matrix[state[0]][action[0]][state[1]][state[2]] #time take to reach pickup point
+            #time take to reach pickup point
+            time = Time_matrix[self.state_get_loc(state)][self.action_get_pickup(action)][self.state_get_time(state)][self.state_get_day(state)]
             state = self.update_time_day(state, time)
             
             state[0] = action[0] #the driver is not at the pickup point
-            time = Time_matrix[state[0]][action[1]][int(state[1])][state[2]] #Time taken to drop the passenger          
+            #Time taken to drop the passenger          
+            time = Time_matrix[self.state_get_loc(state)][self.action_get_drop(action)][self.state_get_time(state)][self.state_get_day(state)]
         next_state = self.update_time_day(state, time)          
-        next_state = [action[1], next_state[1], next_state[2]]
+        next_state = [self.action_get_drop(action), self.state_get_time(next_state), self.state_get_day(next_state)]
         return next_state
 
     def reset(self):
@@ -143,23 +163,27 @@ class CabDriver():
 
     def reward_func(self, state, action, Time_matrix):
         """Takes in state, action and Time-matrix and returns the reward"""
-        if ((action[0] == 0) and (action[1] == 0)): #when driver chooses to stay idle
+        if ((self.action_get_pickup(action) == 0) and (self.action_get_drop(action) == 0)): #when driver chooses to stay idle
             reward = - C    
             
-        elif (state[0] == action[0]):
+        elif (self.state_get_loc(state) == self.action_get_pickup(action)):
             #passenger_time is when passenger is in the cab and this results in both revenue and battery cost
             #idle_time is the time taken for the driver to reach the passenger pickup point, this results only in battery cost.
-            passenger_time = Time_matrix[state[0]][action[1]][state[1]][state[2]]
+            #passenger_time = Time_matrix[state[0]][action[1]][state[1]][state[2]]
+            passenger_time = Time_matrix[self.state_get_loc(state)][self.action_get_drop(action)][self.state_get_time(state)][self.state_get_day(state)]
             idle_time = 0
             reward = (R * passenger_time) - (C *(passenger_time + idle_time))
             
         else:
              #passenger_time is when passenger is in the cab and this results in both revenue and battery cost
             #idle_time is the time taken for the driver to reach the passenger pickup point, this results only in battery cost.
-            idle_time = Time_matrix[state[0]][action[0]][state[1]][state[2]]
+            #idle_time = Time_matrix[state[0]][action[0]][state[1]][state[2]]
+            idle_time = Time_matrix[self.state_get_loc(state)][self.action_get_pickup(action)][self.state_get_time(state)][self.state_get_day(state)]
             state = self.update_time_day(state, idle_time)
             state[0] = action[0]
-            passenger_time = Time_matrix[state[0]][action[1]][int(state[1])][state[2]]          
+            
+            #passenger_time = Time_matrix[state[0]][action[1]][int(state[1])][state[2]]
+            passenger_time = Time_matrix[self.state_get_loc(state)][self.action_get_drop(action)][self.state_get_time(state)][self.state_get_day(state)]
             reward = (R * passenger_time) - (C *(passenger_time + idle_time))
         
         return reward
