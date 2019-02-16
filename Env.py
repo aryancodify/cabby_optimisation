@@ -90,41 +90,49 @@ class CabDriver():
         the state post that journey.
         """
         time = int(time)
-        if (self.state_get_time(state) + time) < 24:
-            state[1] = state[1] + time
-            return state
+        state_time = self.state_get_time(state)
+        state_day = self.state_get_day(state)
+        if (state_time + time) < 24:
+            state_time = state_time + time
+            return state_time, state_day
         else:
             # if time is > 24 we increment the day by 1.
-            state[1] = state[1] + time - 24
-            if state[2] == 6:
-                state[2] = 0
+            state_time = state_time + time - 24
+            if state_day == 6:
+                state_day = 0
             else:
-                state[2] = state[2] + 1
-            return state
+                state_day = state_day + 1
+            return state_time, state_day
 
     def next_state_func(self, state, action, Time_matrix):
         """Takes state and action as input and returns next state"""
-        if self.state_get_loc(state) == self.action_get_pickup(action):  # means driver is already at pickup point
+        next_state = []
+        total_time = 0
+        # means driver is already at pickup point
+        if self.state_get_loc(state) == self.action_get_pickup(action):
             time = Time_matrix[self.state_get_loc(state)][self.action_get_drop(
                 action)][self.state_get_time(state)][self.state_get_day(state)]
-
+            next_state = [state[0], state[1], state[2]]
+            total_time += time
         else:
             # Driver is not at the pickup point, he needs to travel to pickup point first and then drop the passenger.
             #time take to reach pickup point
             time = Time_matrix[self.state_get_loc(state)][self.action_get_pickup(
                 action)][self.state_get_time(state)][self.state_get_day(state)]
-            state = self.update_time_day(state, time)
+            total_time += time
+            state_time, state_day = self.update_time_day(state, time)
             # the driver is now at the pickup point
-            state[0] = action[0]
+            next_state = [action[0], state_time, state_day]
             #Time taken to drop the passenger
-            time = Time_matrix[self.state_get_loc(state)][self.action_get_drop(
-                action)][self.state_get_time(state)][self.state_get_day(state)]
-        next_state = self.update_time_day(state, time)
-        next_state = [self.action_get_drop(action), self.state_get_time(
-            next_state), self.state_get_day(next_state)]
-        return next_state
+            time = Time_matrix[self.action_get_pickup(
+                action)][self.action_get_drop(action)][state_time][state_day]
+            total_time += time
+        state_time, state_day = self.update_time_day(next_state, time)
+        next_state = [self.action_get_drop(action), state_time, state_day]
+        return next_state, total_time
 
     def reset(self):
+        """Return the current state and action space"""
         return self.action_space, self.state_space, self.state_init
 
     def reward_func(self, state, action, Time_matrix):
@@ -146,13 +154,20 @@ class CabDriver():
             #idle_time is the time taken for the driver to reach the passenger pickup point, this results only in battery cost.
             idle_time = Time_matrix[self.state_get_loc(state)][self.action_get_pickup(
                 action)][self.state_get_time(state)][self.state_get_day(state)]
-            state = self.update_time_day(state, idle_time)
-            state[0] = action[0]
-            passenger_time = Time_matrix[self.state_get_loc(state)][self.action_get_drop(
-                action)][self.state_get_time(state)][self.state_get_day(state)]
+            state_time, state_day = self.update_time_day(state, idle_time)
+            passenger_time = Time_matrix[self.action_get_pickup(
+                action)][self.action_get_drop(action)][state_time][state_day]
             reward = (R * passenger_time) - (C * (passenger_time + idle_time))
 
         return reward
+
+    def step(self, state, action, Time_matrix):
+        """
+        Take a trip as cabby to get rewards next step and total time spent
+        """
+        next_state, total_time = self.next_state_func(
+            state, action, Time_matrix)
+        return self.reward_func(state, action, Time_matrix), next_state, total_time
 
     def state_get_loc(self, state):
         return state[0]
