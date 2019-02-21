@@ -80,8 +80,6 @@ class CabDriver():
         possible_actions_index = random.sample(range(1, (m-1)*m + 1), requests) + [0]
         actions = [self.action_space[i] for i in possible_actions_index]
 
-        actions.append([0, 0])
-
         return possible_actions_index, actions
 
     def update_time_day(self, state, time):
