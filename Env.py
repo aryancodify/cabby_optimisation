@@ -21,8 +21,8 @@ class CabDriver():
             list(permutations([i for i in range(m)], 2))
         self.state_space = [[x, y, z]
                             for x in range(m) for y in range(t) for z in range(d)]
-        #self.state_init = random.choice(self.state_space)
-        self.state_init = [0,0,0]
+        self.state_init = random.choice(self.state_space)
+        #self.state_init = [0,0,0]
         # Start the first round
         self.reset()
 
