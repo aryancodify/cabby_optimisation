@@ -21,8 +21,8 @@ class CabDriver():
             list(permutations([i for i in range(m)], 2))
         self.state_space = [[x, y, z]
                             for x in range(m) for y in range(t) for z in range(d)]
-        self.state_init = random.choice(self.state_space)
-
+        #self.state_init = random.choice(self.state_space)
+        self.state_init = [0,0,0]
         # Start the first round
         self.reset()
 
@@ -80,7 +80,7 @@ class CabDriver():
         possible_actions_index = random.sample(range(1, (m-1)*m + 1), requests) + [0]
         actions = [self.action_space[i] for i in possible_actions_index]
 
-        actions.append([0, 0])
+        #actions.append([0, 0])
 
         return possible_actions_index, actions
 
@@ -108,6 +108,14 @@ class CabDriver():
         """Takes state and action as input and returns next state"""
         next_state = []
         total_time = 0
+        if ((self.action_get_pickup(action) == 0) and (self.action_get_drop(action) == 0)):
+            #print("REFUSE")
+            #print(state)
+            state_time, state_day = self.update_time_day(state, 1)
+            #print(state_time, state_day)
+            total_time += 1
+            next_state = [state[0], state_time, state_day]
+            return next_state, total_time
         # means driver is already at pickup point
         if self.state_get_loc(state) == self.action_get_pickup(action):
             time = Time_matrix[self.state_get_loc(state)][self.action_get_drop(
