@@ -76,11 +76,10 @@ class CabDriver():
 
         if requests > 15:
             requests = 15
-        # (0,0) is not considered as customer request
+        # (0,0) is not considered as customer request, however the driver is free to refuse all
+        # customer requests. Hence, add the index of action (0,0).
         possible_actions_index = random.sample(range(1, (m-1)*m + 1), requests) + [0]
         actions = [self.action_space[i] for i in possible_actions_index]
-
-        #actions.append([0, 0])
 
         return possible_actions_index, actions
 
