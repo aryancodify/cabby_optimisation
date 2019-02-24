@@ -130,9 +130,9 @@ class CabDriver():
         """    
         if ((pickup_loc== 0) and (drop_loc == 0)):
             # Refuse all requests, so wait time is 1 unit, next location is current location
-            wait = 1
+            wait_time = 1
             next_loc = curr_loc
-        else if (curr_loc == pickup_loc):
+        elif curr_loc == pickup_loc:
             # means driver is already at pickup point, wait and transit are both 0 then.
             ride_time = Time_matrix[curr_loc][drop_loc][curr_time][curr_day]
             
@@ -156,7 +156,7 @@ class CabDriver():
         # Construct next_state using the next_loc and the new time states.
         next_state = [next_loc, next_time, next_day]
         
-        return next_state, total_time
+        return next_state, wait_time, transit_time, ride_time
     
 
     def reset(self):
